@@ -99,7 +99,7 @@ async function renderPeriod(p) {
 
     let existing = {};
     try {
-        const doc = await db.collection('labs').doc('period_' + p).get();
+        const doc = await getUserDoc('labs', 'period_' + p);
         if (doc.exists) existing = doc.data();
     } catch(e) {}
 
@@ -156,7 +156,7 @@ async function savePeriod(p, period) {
     });
     data.savedAt = firebase.firestore.FieldValue.serverTimestamp();
     try {
-        await db.collection('labs').doc('period_' + p).set(data);
+        await getUserDoc('labs', 'period_' + p).set(data);
         showToast('Periyot ' + p + ' kaydedildi ✓', 'success');
         renderPeriod(p);
     } catch(err) {
@@ -168,7 +168,7 @@ async function savePeriod(p, period) {
 async function clearPeriod(p) {
     if (!confirm('Periyot ' + p + ' verileri silinecek. Emin misiniz?')) return;
     try {
-        await db.collection('labs').doc('period_' + p).delete();
+        await getUserDoc('labs', 'period_' + p).delete();
         showToast('Periyot ' + p + ' temizlendi', 'success');
         renderPeriod(p);
     } catch(err) { showToast('Silme hatası: ' + err.message, 'error'); }

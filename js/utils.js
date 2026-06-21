@@ -7,6 +7,27 @@ const TOTAL_DOSE   = 1.67;   // mL per injection
 const TR_DAYS      = ['Pazar','Pazartesi','Salı','Çarşamba','Perşembe','Cuma','Cumartesi'];
 const TR_MONTHS    = ['Oca','Şub','Mar','Nis','May','Haz','Tem','Ağu','Eyl','Eki','Kas','Ara'];
 
+// ===== USER HELPERS =====
+let currentUserId = null;
+
+function setCurrentUser(user) {
+    currentUserId = user.uid || user.email;
+}
+
+function getUserPath(collection) {
+    if (!currentUserId) return collection;
+    return 'users/' + currentUserId + '/' + collection;
+}
+
+function getUserDoc(collection, docId) {
+    const path = getUserPath(collection);
+    return db.collection(path).doc(docId);
+}
+
+function getUserCollection(collection) {
+    return db.collection(getUserPath(collection));
+}
+
 // ===== DATE HELPERS =====
 function formatDate(dateStr) {
     const d = new Date(dateStr + (dateStr.length === 10 ? 'T00:00:00' : ''));
@@ -41,10 +62,10 @@ function getCurrentWeek() {
 function escHtml(str) {
     if (str === null || str === undefined) return '';
     return String(str)
-        .replace(/&/g, '&amp;')
-        .replace(/</g, '&lt;')
-        .replace(/>/g, '&gt;')
-        .replace(/"/g, '&quot;')
+        .replace(/&/g, '&')
+        .replace(/</g, '<')
+        .replace(/>/g, '>')
+        .replace(/"/g, '"')
         .replace(/'/g, '&#39;');
 }
 

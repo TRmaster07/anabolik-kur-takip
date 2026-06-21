@@ -40,7 +40,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
 async function loadPlan() {
     try {
-        const doc = await db.collection('plan').doc('main').get();
+        const doc = await getUserDoc('plan', 'main');
         if (doc.exists) {
             const d = doc.data();
             if (d && d.name) {
@@ -256,7 +256,7 @@ function cancelEdit() {
 async function deletePlan() {
     if (!confirm('Kur plani silinecek.\nEmin misiniz?')) return;
     try {
-        await db.collection('plan').doc('main').delete();
+        await getUserDoc('plan', 'main').delete();
         plan = null;
         viewMode = 'list';
         showToast('Plan silindi', 'success');
@@ -282,7 +282,7 @@ async function saveEdit() {
     try {
         const d = JSON.parse(JSON.stringify(editDraft));
         d.savedAt = firebase.firestore.FieldValue.serverTimestamp();
-        await db.collection('plan').doc('main').set(d);
+        await getUserDoc('plan', 'main').set(d);
         plan = JSON.parse(JSON.stringify(editDraft));
         viewMode = 'list';
         showToast('Plan kaydedildi', 'success');
@@ -298,13 +298,13 @@ async function applyPlan() {
     if (!confirm('Enjeksiyon takvimi plan ile yenilenecek.\nMevcut tamamlama/notlar korunur. Devam?')) return;
     const schedule = generateScheduleFromPlan(plan);
     try {
-        const snap = await db.collection('injections').get();
+        const snap = await getUserCollection('injections').get();
         const existing = {};
         snap.forEach(doc => { existing[doc.id] = doc.data(); });
         const batch = db.batch();
         schedule.forEach(inj => {
             const ex = existing[inj.id] || {};
-            batch.set(db.collection('injections').doc(inj.id), {
+            batch.set(getUserDoc('injections', inj.id), {
                 ...inj,
                 completed:  ex.completed  ?? false,
                 notes:      ex.notes      ?? '',

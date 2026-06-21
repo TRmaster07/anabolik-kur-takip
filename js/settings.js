@@ -12,7 +12,7 @@ async function loadKurInfo() {
 
     let plan = null;
     try {
-        const doc = await db.collection('plan').doc('main').get();
+        const doc = await getUserDoc('plan', 'main');
         if (doc.exists) {
             const data = doc.data();
             if (isValidPlan(data)) plan = data;
@@ -67,10 +67,10 @@ async function exportJSON() {
     btn.disabled = true; btn.textContent = 'İndiriliyor...';
     try {
         const [injSnap, measSnap, labsSnap, photosSnap] = await Promise.all([
-            db.collection('injections').get(),
-            db.collection('measurements').get(),
-            db.collection('labs').get(),
-            db.collection('photos').get(),
+            getUserCollection('injections').get(),
+            getUserCollection('measurements').get(),
+            getUserCollection('labs').get(),
+            getUserCollection('photos').get(),
         ]);
         const dump = {
             exportedAt:   new Date().toISOString(),
@@ -98,7 +98,7 @@ async function exportJSON() {
 
 async function exportMeasCSV() {
     try {
-        const snap = await db.collection('measurements').orderBy('week','asc').get();
+        const snap = await getUserCollection('measurements').orderBy('week','asc').get();
         const headers = ['Hafta','Kilo','Bel','Sistolik','Diyastolik','Nabız','Akne','Saç Dök.','Libido','Ruh Hali','Nefes Darl.','Baş Ağrısı','Meme Hass.','Enerji','Uyku','Antrenman','Notlar'];
         const rows = [headers];
         snap.forEach(d => {
@@ -134,7 +134,7 @@ async function handleImport(e) {
         const write = (col, data) => Object.entries(data).forEach(([id, val]) => {
             if (typeof val === 'object' && val !== null) {
                 delete val.savedAt; delete val.updatedAt; // remove timestamps
-                batch.set(db.collection(col).doc(id), val, { merge: true });
+                batch.set(getUserDoc(col, id), val, { merge: true });
                 count++;
             }
         });
@@ -159,10 +159,9 @@ async function deleteAllData() {
     try {
         const cols = ['injections','measurements','labs','photos','plan'];
         for (const col of cols) {
-            const snap  = await db.collection(col).get();
+            const snap  = await getUserCollection(col).get();
             const batch = db.batch();
-            // Use db.collection().doc() instead of d.ref to work in DEMO_MODE
-            snap.forEach(d => batch.delete(db.collection(col).doc(d.id)));
+            snap.forEach(d => batch.delete(getUserDoc(col, d.id)));
             await batch.commit();
         }
         showToast('Tüm veriler silindi', 'success');
