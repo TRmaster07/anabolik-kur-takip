@@ -149,7 +149,9 @@ function renderListView() {
         </div>
     </div>
 
-    <button class="btn btn-secondary" onclick="newPlan()" style="font-size:0.82rem">+ Yeni Plan Olustur (mevcut plani degistirir)</button>`;
+    <button class="btn btn-secondary" onclick="newPlan()" style="font-size:0.82rem">+ Yeni Plan Olustur (mevcut plani degistirir)</button>
+    <button class="btn btn-warning" onclick="archivePlan()" style="font-size:0.82rem;margin-left:8px">📦 Kuru Sonlandir ve Arşivle</button>
+    <button class="btn btn-secondary" onclick="showArchivedPlans()" style="font-size:0.82rem;margin-left:8px">📚 Arşivlenmiş Kürler</button>`;
 }
 
 // ===== EDIT VIEW =====
@@ -221,6 +223,52 @@ function bindEditForm() {
 }
 
 // ===== ACTIONS =====
+async function showArchivedPlans() {
+    viewMode = 'archivedList';
+    const cont = document.getElementById('planPageContent');
+    if (!cont) return;
+    
+    cont.innerHTML = '<div class="loading"><div class="spinner"></div> Arşiv yükleniyor...</div>';
+    
+    const archived = await loadArchivedPlans();
+    
+    if (archived.length === 0) {
+        cont.innerHTML = `
+            <div class="empty-state" style="padding:60px 20px">
+                <div class="empty-icon">📦</div>
+                <p>Henüz arşivlenmiş kür yok.</p>
+                <button class="btn btn-secondary" onclick="viewMode='list';renderPage()" style="margin-top:16px">← Geri Dön</button>
+            </div>`;
+        return;
+    }
+    
+    const listHtml = archived.map(a => {
+        const date = a.archivedAt ? new Date(a.archivedAt).toLocaleDateString('tr-TR') : '—';
+        const planName = a.planData?.name || 'İsimsiz Plan';
+        const weeks = a.planData?.totalWeeks || 0;
+        const compounds = (a.planData?.compounds || []).length;
+        
+        return `<div class="card" style="margin-bottom:12px;cursor:pointer" onclick="viewArchivedPlan('${a.id}')">
+            <div style="display:flex;justify-content:space-between;align-items:center">
+                <div>
+                    <div style="font-weight:700;font-size:1rem;margin-bottom:4px">${escHtml(planName)}</div>
+                    <div style="font-size:0.8rem;color:var(--text-secondary)">
+                        ${weeks} hafta · ${compounds} bileşik · Sonlandırma: ${date}
+                    </div>
+                </div>
+                <span class="badge badge-info">📦 Arşiv</span>
+            </div>
+        </div>`;
+    }).join('');
+    
+    cont.innerHTML = `
+        <div style="display:flex;align-items:center;margin-bottom:20px">
+            <button class="btn btn-secondary" onclick="viewMode='list';renderPage()">← Geri Dön</button>
+            <h3 style="margin-left:16px">📚 Arşivlenmiş Kürler (${archived.length})</h3>
+        </div>
+        ${listHtml}`;
+}
+
 function newPlan() {
     editDraft = {
         name: 'Kur 2026', startDate: '', totalWeeks: 13,
@@ -262,6 +310,146 @@ async function deletePlan() {
         showToast('Plan silindi', 'success');
         renderPage();
     } catch(e) { showToast('Silme hatasi: '+e.message, 'error'); }
+}
+
+async function archivePlan() {
+    if (!plan) { showToast('Aktif plan yok', 'warning'); return; }
+    if (!confirm('Kur sonlandırılıp arşivlenecek.\nTüm veriler korunacak. Emin misiniz?')) return;
+    try {
+        const archivedAt = new Date().toISOString();
+        const endDate = plan.endDate || formatDateISO(new Date());
+        
+        await db.collection('archivedPlans').add({
+            planData: JSON.parse(JSON.stringify(plan)),
+            archivedAt: archivedAt,
+            endDate: endDate,
+            totalWeeks: plan.totalWeeks || 13
+        });
+        
+        showToast('Kur arşivlendi ✓', 'success');
+    } catch(e) { showToast('Arşivleme hatası: '+e.message, 'error'); }
+}
+
+async function loadArchivedPlans() {
+    try {
+        const snap = await db.collection('archivedPlans').orderBy('archivedAt', 'desc').get();
+        const plans = [];
+        snap.forEach(doc => {
+            const data = doc.data();
+            plans.push({
+                id: doc.id,
+                ...data
+            });
+        });
+        return plans;
+    } catch(e) {
+        console.error('Arşiv yükleme hatası:', e);
+        return [];
+    }
+}
+
+async function viewArchivedPlan(archivedId) {
+    try {
+        const doc = await db.collection('archivedPlans').doc(archivedId).get();
+        if (doc.exists) {
+            const archived = doc.data();
+            const archivedPlan = archived.planData;
+            
+            // Geçici olarak planı göster
+            viewMode = 'archived';
+            window.currentArchivedPlan = archivedPlan;
+            window.currentArchivedId = archivedId;
+            renderArchivedView(archivedPlan, archived);
+        }
+    } catch(e) { showToast('Yükleme hatası: '+e.message, 'error'); }
+}
+
+function renderArchivedView(archivedPlan, archived) {
+    const cont = document.getElementById('planPageContent');
+    if (!cont) return;
+    
+    const today = new Date(); today.setHours(0,0,0,0);
+    const PHASE_COLORS = { blast:'#ef4444', cruise:'#3b82f6', pct:'#10b981', off:'#64748b', custom:'#f59e0b' };
+    const injDayNames = getPlanInjectionDayUnion(archivedPlan).map(i => DAYS_TR[i] || '').join('/');
+    const totalInj = archivedPlan.startDate ? generateScheduleFromPlan(archivedPlan).length : 0;
+    const totalVol = ((archivedPlan.compounds||[]).reduce((s,c)=>s+(parseFloat(c.mlPerInj)||0),0)).toFixed(2);
+
+    // Active phase
+    let activePhaseHtml = '';
+    const activePhase = (archivedPlan.phases||[]).find(p => {
+        if (!p.startDate||!p.endDate) return false;
+        const s=new Date(p.startDate+' 00:00:00'), e=new Date(p.endDate+' 00:00:00');
+        return today>=s && today<=e;
+    });
+    if (activePhase) {
+        const tc = PHASE_TYPES.find(t=>t.value===activePhase.type)||PHASE_TYPES[0];
+        const dLeft = Math.ceil((new Date(activePhase.endDate+' 00:00:00')-today)/86400000);
+        activePhaseHtml = `<span class="phase-badge" style="background:${tc.color}22;color:${tc.color};border:1px solid ${tc.color}44">${tc.label}: ${escHtml(activePhase.name)} — ${dLeft} gun kaldi</span>`;
+    }
+
+    // Compounds rows
+    const cmpHtml = (archivedPlan.compounds||[]).map(c => {
+        const cDays = getCompoundInjectionDays(c, archivedPlan).map(i => DAYS_TR[i] || '').join('/');
+        return `<div style="display:flex;justify-content:space-between;padding:5px 0;border-bottom:1px solid var(--border);font-size:0.875rem;gap:12px;flex-wrap:wrap">
+            <span><strong>${escHtml(c.shortName||c.name)}</strong> — ${escHtml(c.name)}<br><span style="font-size:0.78rem;color:var(--text-muted)">Gunler: ${escHtml(cDays || '—')}</span></span>
+            <span style="color:var(--text-secondary)">${c.weeklyDose||0} mg/hf &nbsp;→&nbsp; <strong style="color:var(--accent-text)">${parseFloat(c.mlPerInj||0).toFixed(2)} mL/enj</strong></span>
+         </div>`;
+    }).join('');
+
+    // Phases rows
+    const phHtml = (archivedPlan.phases||[]).map(p => {
+        const tc = PHASE_TYPES.find(t=>t.value===p.type)||PHASE_TYPES[0];
+        const dur = (p.startDate&&p.endDate)
+            ? Math.ceil((new Date(p.endDate+' 00:00:00')-new Date(p.startDate+' 00:00:00'))/86400000/7) + ' hf'
+            : '—';
+        return `<div style="display:flex;align-items:center;gap:10px;padding:5px 0;border-bottom:1px solid var(--border);font-size:0.875rem">
+            <span style="width:10px;height:10px;border-radius:50%;background:${tc.color};flex-shrink:0"></span>
+            <span class="phase-badge" style="background:${tc.color}22;color:${tc.color};border:1px solid ${tc.color}44;padding:2px 8px;font-size:0.75rem">${tc.label}</span>
+            <strong>${escHtml(p.name)}</strong>
+            <span style="color:var(--text-muted)">${escHtml(p.startDate||'?')} → ${escHtml(p.endDate||'?')} (${dur})</span>
+        </div>`;
+    }).join('');
+
+    const archivedDate = archived.archivedAt ? new Date(archived.archivedAt).toLocaleDateString('tr-TR') : '—';
+    
+    cont.innerHTML = `
+    <div style="display:flex;gap:10px;margin-bottom:20px;flex-wrap:wrap">
+        <button class="btn btn-secondary" onclick="viewMode='list';renderPage()">← Geri Dön</button>
+        <span class="badge badge-warning" style="margin-left:auto;align-self:center">📦 Arşiv: ${archivedDate}</span>
+    </div>
+
+    <div class="card" style="margin-bottom:16px">
+        <div class="card-header">
+            <span class="card-title" style="font-size:1.2rem">📋 ${escHtml(archivedPlan.name||'Plan')}</span>
+            ${activePhaseHtml}
+        </div>
+        <div style="display:flex;gap:24px;flex-wrap:wrap;margin-top:10px;font-size:0.875rem;color:var(--text-secondary)">
+            <span>📅 Baslangic: <strong style="color:var(--text-primary)">${escHtml(archivedPlan.startDate||'—')}</strong></span>
+            <span>📆 Sure: <strong style="color:var(--text-primary)">${archivedPlan.totalWeeks||0} hafta</strong></span>
+            <span>💉 Gunler: <strong style="color:var(--text-primary)">${injDayNames}</strong></span>
+            <span>💊 Toplam: <strong style="color:var(--accent-text)">${totalVol} mL/enj</strong></span>
+            <span>🔢 Toplam enj: <strong style="color:var(--text-primary)">${totalInj}</strong></span>
+        </div>
+    </div>
+
+    <div class="grid-2" style="margin-bottom:16px">
+        <div class="card">
+            <div class="section-title" style="margin-bottom:10px">💊 Bilesikler</div>
+            ${cmpHtml || '<span style="color:var(--text-muted);font-size:0.85rem">Bilesik yok</span>'}
+        </div>
+        <div class="card">
+            <div class="section-title" style="margin-bottom:10px">📆 Donemler</div>
+            ${phHtml || '<span style="color:var(--text-muted);font-size:0.85rem">Donem tanimlanmamis</span>'}
+        </div>
+    </div>
+
+    <div class="card" style="background:var(--bg-tertiary);border-left:4px solid var(--warning)">
+        <div style="font-size:0.85rem;color:var(--text-secondary)">
+            <strong>📦 Arşiv Bilgisi:</strong><br>
+            Sonlandırma Tarihi: ${archivedDate}<br>
+            Bu plan arşivlenmiştir ve değiştirilemez.
+        </div>
+    </div>`;
 }
 
 async function saveEdit() {

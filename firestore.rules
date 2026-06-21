@@ -5,5 +5,9 @@ service cloud.firestore {
     match /{document=**} {
       allow read, write: if request.auth != null;
     }
+    // Archived plans collection
+    match /archivedPlans/{document=**} {
+      allow read, write: if request.auth != null;
+    }
   }
 }
