@@ -109,17 +109,17 @@ async function handleFileSelected(e) {
     try {
         const compressed = await compressImage(file, 1200, 0.82);
         const { week, type } = pendingUpload;
-        const path = 'photos/week_' + week + '/' + type + '_' + Date.now() + '.jpg';
-        const ref  = storage.ref(path);
-        await ref.put(compressed);
-        const url  = await ref.getDownloadURL();
+        
+        // Convert blob to base64
+        const base64 = await blobToBase64(compressed);
+        const dataUrl = 'data:image/jpeg;base64,' + base64;
 
         const key  = 'week_' + week;
         if (!photoCache[key]) photoCache[key] = {};
-        photoCache[key][type] = url;
+        photoCache[key][type] = dataUrl;
 
         await db.collection('photos').doc(key).set(
-            { week, [type]: url, savedAt: firebase.firestore.FieldValue.serverTimestamp() },
+            { week, [type]: dataUrl, savedAt: firebase.firestore.FieldValue.serverTimestamp() },
             { merge: true }
         );
 
@@ -135,6 +135,18 @@ async function handleFileSelected(e) {
     } finally {
         pendingUpload = null;
     }
+}
+
+function blobToBase64(blob) {
+    return new Promise((resolve, reject) => {
+        const reader = new FileReader();
+        reader.onloadend = () => {
+            const base64 = reader.result.split(',')[1];
+            resolve(base64);
+        };
+        reader.onerror = reject;
+        reader.readAsDataURL(blob);
+    });
 }
 
 function compressImage(file, maxDim, quality) {
