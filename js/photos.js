@@ -110,16 +110,33 @@ async function handleFileSelected(e) {
         const compressed = await compressImage(file, 1200, 0.82);
         const { week, type } = pendingUpload;
         
-        // Convert blob to base64
-        const base64 = await blobToBase64(compressed);
-        const dataUrl = 'data:image/jpeg;base64,' + base64;
+        // Cloudinary'ye yükle
+        const formData = new FormData();
+        formData.append('file', compressed);
+        formData.append('upload_preset', CLOUDINARY_UPLOAD_PRESET);
+        formData.append('folder', 'photos/week_' + week);
+        
+        const uploadResponse = await fetch(
+            `https://api.cloudinary.com/v1_1/${CLOUDINARY_CLOUD_NAME}/image/upload`,
+            {
+                method: 'POST',
+                body: formData
+            }
+        );
+        
+        if (!uploadResponse.ok) {
+            throw new Error('Cloudinary yükleme hatası: ' + uploadResponse.status);
+        }
+        
+        const uploadResult = await uploadResponse.json();
+        const url = uploadResult.secure_url;
 
         const key  = 'week_' + week;
         if (!photoCache[key]) photoCache[key] = {};
-        photoCache[key][type] = dataUrl;
+        photoCache[key][type] = url;
 
         await db.collection('photos').doc(key).set(
-            { week, [type]: dataUrl, savedAt: firebase.firestore.FieldValue.serverTimestamp() },
+            { week, [type]: url, savedAt: firebase.firestore.FieldValue.serverTimestamp() },
             { merge: true }
         );
 
@@ -135,18 +152,6 @@ async function handleFileSelected(e) {
     } finally {
         pendingUpload = null;
     }
-}
-
-function blobToBase64(blob) {
-    return new Promise((resolve, reject) => {
-        const reader = new FileReader();
-        reader.onloadend = () => {
-            const base64 = reader.result.split(',')[1];
-            resolve(base64);
-        };
-        reader.onerror = reject;
-        reader.readAsDataURL(blob);
-    });
 }
 
 function compressImage(file, maxDim, quality) {
