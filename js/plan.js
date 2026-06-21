@@ -314,19 +314,26 @@ async function deletePlan() {
 
 async function archivePlan() {
     if (!plan) { showToast('Aktif plan yok', 'warning'); return; }
-    if (!confirm('Kur sonlandırılıp arşivlenecek.\nTüm veriler korunacak. Emin misiniz?')) return;
+    if (!confirm('Kur sonlandırılıp arşivlenecek.\nAktif plan silinecek. Tüm veriler arşivde korunacak. Emin misiniz?')) return;
     try {
         const archivedAt = new Date().toISOString();
         const endDate = plan.endDate || formatDateISO(new Date());
         
+        // Arşivle
         await db.collection('archivedPlans').add({
             planData: JSON.parse(JSON.stringify(plan)),
             archivedAt: archivedAt,
             endDate: endDate,
-            totalWeeks: plan.totalWeeks || 13
+            totalWeeks: plan.totalWeeks || 13,
+            totalInjections: generateScheduleFromPlan(plan).length
         });
         
-        showToast('Kur arşivlendi ✓', 'success');
+        // Aktif planı sil
+        await db.collection('plan').doc('main').delete();
+        plan = null;
+        
+        showToast('Kur sonlandırıldı ve arşivlendi ✓', 'success');
+        renderPage();
     } catch(e) { showToast('Arşivleme hatası: '+e.message, 'error'); }
 }
 
@@ -370,9 +377,19 @@ function renderArchivedView(archivedPlan, archived) {
     
     const today = new Date(); today.setHours(0,0,0,0);
     const PHASE_COLORS = { blast:'#ef4444', cruise:'#3b82f6', pct:'#10b981', off:'#64748b', custom:'#f59e0b' };
+    const PHASE_LABELS = { blast:'Blast', cruise:'Cruise', pct:'PCT', off:'Duraklama', custom:'Özel' };
     const injDayNames = getPlanInjectionDayUnion(archivedPlan).map(i => DAYS_TR[i] || '').join('/');
-    const totalInj = archivedPlan.startDate ? generateScheduleFromPlan(archivedPlan).length : 0;
+    const schedule = archivedPlan.startDate ? generateScheduleFromPlan(archivedPlan) : [];
+    const totalInj = schedule.length;
     const totalVol = ((archivedPlan.compounds||[]).reduce((s,c)=>s+(parseFloat(c.mlPerInj)||0),0)).toFixed(2);
+    
+    // Haftalara göre toplam doz hesapla
+    const weeklyTotals = {};
+    schedule.forEach(inj => {
+        const week = inj.week;
+        if (!weeklyTotals[week]) weeklyTotals[week] = 0;
+        weeklyTotals[week] += inj.totalVolume || 0;
+    });
 
     // Active phase
     let activePhaseHtml = '';
@@ -382,35 +399,81 @@ function renderArchivedView(archivedPlan, archived) {
         return today>=s && today<=e;
     });
     if (activePhase) {
-        const tc = PHASE_TYPES.find(t=>t.value===activePhase.type)||PHASE_TYPES[0];
+        const tc = PHASE_COLORS[activePhase.type] || '#f59e0b';
         const dLeft = Math.ceil((new Date(activePhase.endDate+' 00:00:00')-today)/86400000);
-        activePhaseHtml = `<span class="phase-badge" style="background:${tc.color}22;color:${tc.color};border:1px solid ${tc.color}44">${tc.label}: ${escHtml(activePhase.name)} — ${dLeft} gun kaldi</span>`;
+        activePhaseHtml = `<span class="phase-badge" style="background:${tc}22;color:${tc};border:1px solid ${tc}44">${PHASE_LABELS[activePhase.type] || activePhase.type}: ${escHtml(activePhase.name)}</span>`;
     }
 
-    // Compounds rows
+    // Detaylı bileşikler
     const cmpHtml = (archivedPlan.compounds||[]).map(c => {
         const cDays = getCompoundInjectionDays(c, archivedPlan).map(i => DAYS_TR[i] || '').join('/');
-        return `<div style="display:flex;justify-content:space-between;padding:5px 0;border-bottom:1px solid var(--border);font-size:0.875rem;gap:12px;flex-wrap:wrap">
-            <span><strong>${escHtml(c.shortName||c.name)}</strong> — ${escHtml(c.name)}<br><span style="font-size:0.78rem;color:var(--text-muted)">Gunler: ${escHtml(cDays || '—')}</span></span>
-            <span style="color:var(--text-secondary)">${c.weeklyDose||0} mg/hf &nbsp;→&nbsp; <strong style="color:var(--accent-text)">${parseFloat(c.mlPerInj||0).toFixed(2)} mL/enj</strong></span>
-         </div>`;
-    }).join('');
-
-    // Phases rows
-    const phHtml = (archivedPlan.phases||[]).map(p => {
-        const tc = PHASE_TYPES.find(t=>t.value===p.type)||PHASE_TYPES[0];
-        const dur = (p.startDate&&p.endDate)
-            ? Math.ceil((new Date(p.endDate+' 00:00:00')-new Date(p.startDate+' 00:00:00'))/86400000/7) + ' hf'
-            : '—';
-        return `<div style="display:flex;align-items:center;gap:10px;padding:5px 0;border-bottom:1px solid var(--border);font-size:0.875rem">
-            <span style="width:10px;height:10px;border-radius:50%;background:${tc.color};flex-shrink:0"></span>
-            <span class="phase-badge" style="background:${tc.color}22;color:${tc.color};border:1px solid ${tc.color}44;padding:2px 8px;font-size:0.75rem">${tc.label}</span>
-            <strong>${escHtml(p.name)}</strong>
-            <span style="color:var(--text-muted)">${escHtml(p.startDate||'?')} → ${escHtml(p.endDate||'?')} (${dur})</span>
+        const weeklyDoses = c.weeklyDoses || {};
+        let doseDetails = '';
+        if (Object.keys(weeklyDoses).length > 0) {
+            doseDetails = '<div style="margin-top:6px;font-size:0.75rem;color:var(--text-muted)">Haftalık Dozlar: ';
+            const doses = Object.entries(weeklyDoses).slice(0, 5).map(([w, d]) => 'H' + w + ':' + d + 'mg');
+            doseDetails += doses.join(', ');
+            if (Object.keys(weeklyDoses).length > 5) doseDetails += '...';
+            doseDetails += '</div>';
+        }
+        
+        return `<div style="padding:12px;background:var(--bg-secondary);border-radius:var(--radius-sm);margin-bottom:8px">
+            <div style="display:flex;justify-content:space-between;align-items:start;margin-bottom:6px">
+                <div>
+                    <strong style="font-size:0.95rem">${escHtml(c.shortName||c.name)}</strong>
+                    ${c.customName ? '<span style="font-size:0.8rem;color:var(--text-muted);margin-left:6px">(' + escHtml(c.customName) + ')</span>' : ''}
+                </div>
+                <span class="badge badge-info">${c.weeklyDose||0} mg/hf</span>
+            </div>
+            <div style="font-size:0.8rem;color:var(--text-secondary);margin-bottom:4px">
+                Konsantrasyon: <strong>${c.concentration} mg/mL</strong> | Enj. Başına: <strong>${parseFloat(c.mlPerInj||0).toFixed(2)} mL</strong>
+            </div>
+            <div style="font-size:0.78rem;color:var(--text-muted)">Enjeksiyon Günleri: ${escHtml(cDays || '—')}</div>
+            ${doseDetails}
         </div>`;
     }).join('');
 
-    const archivedDate = archived.archivedAt ? new Date(archived.archivedAt).toLocaleDateString('tr-TR') : '—';
+    // Detaylı dönemler
+    const phHtml = (archivedPlan.phases||[]).map(p => {
+        const tc = PHASE_COLORS[p.type] || '#f59e0b';
+        const label = PHASE_LABELS[p.type] || p.type;
+        const dur = (p.startDate&&p.endDate)
+            ? Math.ceil((new Date(p.endDate+' 00:00:00')-new Date(p.startDate+' 00:00:00'))/86400000/7) + ' hafta'
+            : '—';
+        const startFormatted = p.startDate ? formatDate(p.startDate) : '?';
+        const endFormatted = p.endDate ? formatDate(p.endDate) : '?';
+        
+        return `<div style="display:flex;align-items:center;gap:12px;padding:10px;background:var(--bg-secondary);border-radius:var(--radius-sm);margin-bottom:8px;border-left:3px solid ${tc}">
+            <span style="width:12px;height:12px;border-radius:50%;background:${tc};flex-shrink:0"></span>
+            <div style="flex:1">
+                <div style="font-weight:700;font-size:0.9rem;margin-bottom:2px">${escHtml(p.name)}</div>
+                <div style="font-size:0.78rem;color:var(--text-muted)">
+                    ${startFormatted} → ${endFormatted} (${dur})
+                </div>
+            </div>
+            <span class="badge" style="background:${tc}22;color:${tc};border:1px solid ${tc}44;padding:3px 10px;font-size:0.72rem">${label}</span>
+        </div>`;
+    }).join('');
+
+    // Haftalık ilerleme özeti
+    const progressHtml = schedule.length > 0 ? `
+        <div class="card" style="margin-bottom:16px">
+            <div class="section-title" style="margin-bottom:12px">📊 Haftalık Hacim Özeti</div>
+            <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(70px,1fr));gap:6px">
+                ${Object.entries(weeklyTotals).map(([week, vol]) => `
+                    <div style="text-align:center;padding:6px;background:var(--bg-secondary);border-radius:6px">
+                        <div style="font-size:0.68rem;color:var(--text-muted);margin-bottom:2px">H${week}</div>
+                        <div style="font-size:0.82rem;font-weight:700;color:var(--accent-text)">${vol.toFixed(1)}</div>
+                        <div style="font-size:0.65rem;color:var(--text-muted)">mL</div>
+                    </div>
+                `).join('')}
+            </div>
+        </div>
+    ` : '';
+
+    const archivedDate = archived.archivedAt ? new Date(archived.archivedAt).toLocaleDateString('tr-TR', { 
+        year: 'numeric', month: 'long', day: 'numeric', hour: '2-digit', minute: '2-digit' 
+    }) : '—';
     
     cont.innerHTML = `
     <div style="display:flex;gap:10px;margin-bottom:20px;flex-wrap:wrap">
@@ -418,36 +481,55 @@ function renderArchivedView(archivedPlan, archived) {
         <span class="badge badge-warning" style="margin-left:auto;align-self:center">📦 Arşiv: ${archivedDate}</span>
     </div>
 
-    <div class="card" style="margin-bottom:16px">
+    <div class="card" style="margin-bottom:16px;border-left:4px solid var(--accent)">
         <div class="card-header">
-            <span class="card-title" style="font-size:1.2rem">📋 ${escHtml(archivedPlan.name||'Plan')}</span>
-            ${activePhaseHtml}
+            <span class="card-title" style="font-size:1.3rem">📋 ${escHtml(archivedPlan.name||'Plan')}</span>
         </div>
-        <div style="display:flex;gap:24px;flex-wrap:wrap;margin-top:10px;font-size:0.875rem;color:var(--text-secondary)">
-            <span>📅 Baslangic: <strong style="color:var(--text-primary)">${escHtml(archivedPlan.startDate||'—')}</strong></span>
-            <span>📆 Sure: <strong style="color:var(--text-primary)">${archivedPlan.totalWeeks||0} hafta</strong></span>
-            <span>💉 Gunler: <strong style="color:var(--text-primary)">${injDayNames}</strong></span>
-            <span>💊 Toplam: <strong style="color:var(--accent-text)">${totalVol} mL/enj</strong></span>
-            <span>🔢 Toplam enj: <strong style="color:var(--text-primary)">${totalInj}</strong></span>
+        <div style="display:flex;gap:20px;flex-wrap:wrap;margin-top:12px;font-size:0.875rem">
+            <div style="flex:1;min-width:200px">
+                <div style="font-size:0.78rem;color:var(--text-muted);margin-bottom:4px">📅 Başlangıç</div>
+                <div style="font-weight:600">${escHtml(archivedPlan.startDate||'—')}</div>
+            </div>
+            <div style="flex:1;min-width:200px">
+                <div style="font-size:0.78rem;color:var(--text-muted);margin-bottom:4px">📆 Süre</div>
+                <div style="font-weight:600">${archivedPlan.totalWeeks||0} hafta</div>
+            </div>
+            <div style="flex:1;min-width:200px">
+                <div style="font-size:0.78rem;color:var(--text-muted);margin-bottom:4px">💉 Enjeksiyon Günleri</div>
+                <div style="font-weight:600">${injDayNames || '—'}</div>
+            </div>
+            <div style="flex:1;min-width:200px">
+                <div style="font-size:0.78rem;color:var(--text-muted);margin-bottom:4px">🔢 Toplam Enjeksiyon</div>
+                <div style="font-weight:600;color:var(--accent-text)">${totalInj}</div>
+            </div>
         </div>
     </div>
+
+    ${progressHtml}
 
     <div class="grid-2" style="margin-bottom:16px">
         <div class="card">
-            <div class="section-title" style="margin-bottom:10px">💊 Bilesikler</div>
-            ${cmpHtml || '<span style="color:var(--text-muted);font-size:0.85rem">Bilesik yok</span>'}
+            <div class="section-title" style="margin-bottom:12px">💊 Bileşikler (${(archivedPlan.compounds||[]).length})</div>
+            ${cmpHtml || '<span style="color:var(--text-muted);font-size:0.85rem">Bileşik yok</span>'}
         </div>
         <div class="card">
-            <div class="section-title" style="margin-bottom:10px">📆 Donemler</div>
-            ${phHtml || '<span style="color:var(--text-muted);font-size:0.85rem">Donem tanimlanmamis</span>'}
+            <div class="section-title" style="margin-bottom:12px">📆 Dönemler (${(archivedPlan.phases||[]).length})</div>
+            ${phHtml || '<span style="color:var(--text-muted);font-size:0.85rem">Dönem tanımlanmamış</span>'}
         </div>
     </div>
 
-    <div class="card" style="background:var(--bg-tertiary);border-left:4px solid var(--warning)">
-        <div style="font-size:0.85rem;color:var(--text-secondary)">
-            <strong>📦 Arşiv Bilgisi:</strong><br>
-            Sonlandırma Tarihi: ${archivedDate}<br>
-            Bu plan arşivlenmiştir ve değiştirilemez.
+    <div class="card" style="background:linear-gradient(135deg, rgba(124,58,237,0.1), rgba(245,158,11,0.1));border:1px solid rgba(124,58,237,0.3)">
+        <div style="font-size:0.85rem;color:var(--text-secondary);line-height:1.6">
+            <strong style="font-size:0.9rem">📦 Arşiv Bilgisi:</strong><br>
+            <div style="display:grid;grid-template-columns:repeat(2,1fr);gap:8px;margin-top:8px">
+                <div>Sonlandırma Tarihi: <strong>${archivedDate}</strong></div>
+                <div>Toplam Hacim/Enj: <strong>${totalVol} mL</strong></div>
+                <div>Bileşik Sayısı: <strong>${(archivedPlan.compounds||[]).length}</strong></div>
+                <div>Dönem Sayısı: <strong>${(archivedPlan.phases||[]).length}</strong></div>
+            </div>
+            <div style="margin-top:10px;padding:10px;background:rgba(0,0,0,0.2);border-radius:6px;font-size:0.78rem">
+                ⚠️ Bu plan arşivlenmiştir ve değiştirilemez. Tüm veriler korunmaktadır.
+            </div>
         </div>
     </div>`;
 }
