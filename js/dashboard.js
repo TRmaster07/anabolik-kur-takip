@@ -68,18 +68,47 @@ async function loadDashboard() {
         renderPlanStats(activePlan);
     }
 
+    // Her veri yükleme işlemini ayrı ayrı yap (bir tanesi yavaş olsa bile diğerleri yüklensin)
     try {
-        await Promise.all([
-            loadPlanPhase(),
-            activePlan ? loadInjectionStats() : Promise.resolve(),
-            loadLastMeasurement(),
-            loadLastLab(),
-            loadLastPhoto()
-        ]);
+        await loadPlanPhase();
+    } catch (err) {
+        console.warn('Plan phase yükleme hatası:', err);
+    }
+
+    if (activePlan) {
+        try {
+            await loadInjectionStats();
+        } catch (err) {
+            console.warn('Enjeksiyon istatistikleri yükleme hatası:', err);
+        }
+    }
+
+    try {
+        await loadLastMeasurement();
+    } catch (err) {
+        console.warn('Ölçüm yükleme hatası:', err);
+    }
+
+    try {
+        await loadLastLab();
+    } catch (err) {
+        console.warn('Tahlil yükleme hatası:', err);
+    }
+
+    try {
+        await loadLastPhoto();
+    } catch (err) {
+        console.warn('Fotoğraf yükleme hatası:', err);
+    }
+
+    try {
         await renderWeeklyProgress();
     } catch (err) {
-        console.error('Dashboard load error:', err);
-        showToast('Veriler yüklenemedi', 'error');
+        console.warn('Haftalık ilerleme yükleme hatası:', err);
+        const grid = document.getElementById('weeklyProgressGrid');
+        if (grid) {
+            grid.innerHTML = '<div class="empty-state" style="padding:40px 20px"><div class="empty-icon">⚠️</div><p>Haftalık ilerleme yüklenirken hata oluştu.<br>Sayfayı yenilemeyi deneyin.</p></div>';
+        }
     }
 }
 
@@ -200,9 +229,15 @@ async function renderWeeklyProgress() {
 
     const schedule = generateScheduleFromPlan(activePlan);
     const totalWeeks = parseInt(activePlan.totalWeeks, 10) || 13;
-    const snap = await db.collection('injections').get();
-    const done = new Set();
-    snap.forEach(d => { if (d.data().completed) done.add(d.id); });
+    
+    // Enjeksiyon verilerini yükle (hata olursa devam et)
+    let done = new Set();
+    try {
+        const snap = await db.collection('injections').get();
+        snap.forEach(d => { if (d.data().completed) done.add(d.id); });
+    } catch (err) {
+        console.warn('Enjeksiyon verileri yüklenemedi:', err);
+    }
 
     const today = new Date(); today.setHours(0, 0, 0, 0);
     let html = '<div class="kur-progress-grid">';
