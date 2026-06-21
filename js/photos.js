@@ -22,7 +22,7 @@ async function initPhotos() {
 
 async function loadAllPhotoMeta() {
     try {
-        const snap = await getUserCollection('photos').get();
+        const snap = await db.collection('photos').get();
         snap.forEach(doc => { photoCache[doc.id] = doc.data(); });
     } catch(e) { console.error(e); }
 }
@@ -135,7 +135,7 @@ async function handleFileSelected(e) {
         if (!photoCache[key]) photoCache[key] = {};
         photoCache[key][type] = url;
 
-        await getUserDoc('photos', key).set(
+        await db.collection('photos').doc(key).set(
             { week, [type]: url, savedAt: firebase.firestore.FieldValue.serverTimestamp() },
             { merge: true }
         );

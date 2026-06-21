@@ -23,7 +23,7 @@ document.addEventListener('DOMContentLoaded', () => {
 async function initInjections() {
     // 1. Try to load plan
     try {
-        const pdoc = await getUserDoc('plan', 'main');
+        const pdoc = await db.collection('plan').doc('main').get();
         if (pdoc.exists) {
             const data = pdoc.data();
             if (isValidPlan(data)) activePlan = data;
@@ -37,7 +37,7 @@ async function initInjections() {
 
         // 3. Merge saved injection data
         try {
-            const snap = await getUserCollection('injections').get();
+            const snap = await db.collection('injections').get();
             snap.forEach(doc => { savedData[doc.id] = doc.data(); });
             allSchedule = allSchedule.map(i => ({ ...i, ...(savedData[i.id] || {}) }));
         } catch (err) {
@@ -237,7 +237,7 @@ async function saveRow(id, btn) {
     const origText = btn.textContent;
     btn.disabled = true; btn.textContent = '...';
     try {
-        await getUserDoc('injections', id).set(
+        await db.collection('injections').doc(id).set(
             { completed, notes, site, odem, hassasiyet, kizariklik,
               updatedAt: firebase.firestore.FieldValue.serverTimestamp() },
             { merge: true }
@@ -261,7 +261,7 @@ function bindToolbar() {
         if (!confirm('Tum enjeksiyon kayitlari silinecek.\nEmin misiniz?')) return;
         try {
             const batch = db.batch();
-            allSchedule.forEach(i => batch.delete(getUserDoc('injections', i.id)));
+            allSchedule.forEach(i => batch.delete(db.collection('injections').doc(i.id)));
             await batch.commit();
             savedData   = {};
             allSchedule = allSchedule.map(i => ({ ...i, completed:false, notes:'', site:'', odem:false, hassasiyet:false, kizariklik:false }));

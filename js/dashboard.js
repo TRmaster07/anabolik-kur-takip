@@ -10,7 +10,7 @@ document.addEventListener('DOMContentLoaded', () => {
 async function loadActivePlan() {
     activePlan = null;
     try {
-        const doc = await getUserDoc('plan', 'main');
+        const doc = await db.collection('plan').doc('main').get();
         if (doc.exists && isValidPlan(doc.data())) {
             activePlan = doc.data();
         }
@@ -135,7 +135,7 @@ async function loadPlanPhase() {
 
 async function loadInjectionStats() {
     const schedule = generateScheduleFromPlan(activePlan);
-    const snap = await getUserCollection('injections').get();
+    const snap = await db.collection('injections').get();
     const completed = new Set();
     snap.forEach(d => { if (d.data().completed) completed.add(d.id); });
     const total = schedule.length;
@@ -146,7 +146,7 @@ async function loadInjectionStats() {
 }
 
 async function loadLastMeasurement() {
-    const snap = await getUserCollection('measurements').orderBy('week', 'desc').limit(1).get();
+    const snap = await db.collection('measurements').orderBy('week', 'desc').limit(1).get();
     if (!snap.empty) {
         const d = snap.docs[0].data();
         const w = d.week || '';
@@ -161,7 +161,7 @@ async function loadLastMeasurement() {
 
 async function loadLastLab() {
     const periodNames = { 1: 'Kür Öncesi', 2: 'Kür Ortası I', 3: 'Kür Ortası II', 4: 'Kür Sonu' };
-    const snap = await getUserCollection('labs').orderBy('savedAt', 'desc').limit(1).get();
+    const snap = await db.collection('labs').orderBy('savedAt', 'desc').limit(1).get();
     if (!snap.empty) {
         const d = snap.docs[0].data();
         document.getElementById('lastLabDate').textContent = d.date ? formatDate(d.date) : '—';
@@ -175,7 +175,7 @@ async function loadLastLab() {
 }
 
 async function loadLastPhoto() {
-    const snap = await getUserCollection('photos').orderBy('week', 'desc').limit(1).get();
+    const snap = await db.collection('photos').orderBy('week', 'desc').limit(1).get();
     if (!snap.empty) {
         const d = snap.docs[0].data();
         const ts = d.savedAt ? formatDate(d.savedAt.toDate().toISOString().split('T')[0]) : '';
@@ -200,7 +200,7 @@ async function renderWeeklyProgress() {
 
     const schedule = generateScheduleFromPlan(activePlan);
     const totalWeeks = parseInt(activePlan.totalWeeks, 10) || 13;
-    const snap = await getUserCollection('injections').get();
+    const snap = await db.collection('injections').get();
     const done = new Set();
     snap.forEach(d => { if (d.data().completed) done.add(d.id); });
 

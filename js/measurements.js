@@ -49,7 +49,7 @@ async function loadWeek(w) {
     const indicator = document.getElementById('savedIndicator');
     indicator.textContent = '';
     try {
-        const doc = await getUserDoc('measurements', 'week_' + w);
+        const doc = await db.collection('measurements').doc('week_' + w).get();
         if (doc.exists) {
             populateForm(doc.data());
             indicator.innerHTML = '<span class="saved-badge">✓ Kaydedildi</span>';
@@ -112,7 +112,7 @@ function bindForm() {
         try {
             const data = getFormData();
             data.savedAt = firebase.firestore.FieldValue.serverTimestamp();
-            await getUserDoc('measurements', 'week_' + currentWeek).set(data);
+            await db.collection('measurements').doc('week_' + currentWeek).set(data);
             showToast('Hafta ' + currentWeek + ' kaydedildi ✓', 'success');
             document.getElementById('savedIndicator').innerHTML = '<span class="saved-badge">✓ Kaydedildi</span>';
         } catch (err) {
@@ -125,7 +125,7 @@ function bindForm() {
     document.getElementById('clearBtn').addEventListener('click', async () => {
         if (!confirm('Hafta ' + currentWeek + ' verisi silinecek. Emin misiniz?')) return;
         try {
-            await getUserDoc('measurements', 'week_' + currentWeek).delete();
+            await db.collection('measurements').doc('week_' + currentWeek).delete();
             clearForm();
             document.getElementById('savedIndicator').textContent = '';
             showToast('Hafta ' + currentWeek + ' temizlendi', 'success');
