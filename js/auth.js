@@ -5,7 +5,6 @@ function requireAuth(callback) {
         const demo = sessionStorage.getItem('demoUser');
         if (demo) {
             const user = { email: demo, uid: 'demo' };
-            setCurrentUser(user);
             if (typeof callback === 'function') callback(user);
         } else {
             window.location.href = 'index.html';
@@ -15,7 +14,6 @@ function requireAuth(callback) {
     // Real Firebase
     auth.onAuthStateChanged(user => {
         if (user) {
-            setCurrentUser(user);
             if (typeof callback === 'function') callback(user);
         } else {
             window.location.href = 'index.html';
