@@ -389,15 +389,51 @@ function renderCompounds() {
         cont.innerHTML = editDraft.compounds.map(buildCompoundRow).join('');
         editDraft.compounds.forEach(c => {
             const sel  = document.getElementById('cs_'+c.id);
+            const name = document.getElementById('cn_'+c.id);
             const conc = document.getElementById('cc_'+c.id);
             const dose = document.getElementById('cd_'+c.id);
             if (sel)  sel.addEventListener('change', () => {
                 const pr = COMPOUND_PRESETS.find(x=>x.name===sel.value);
-                if (pr) { c.name=pr.name; c.shortName=pr.shortName; if(pr.concentration>0){c.concentration=pr.concentration;if(conc)conc.value=pr.concentration;} }
+                if (pr) { 
+                    c.name=pr.name; 
+                    c.shortName=pr.shortName; 
+                    if(pr.concentration>0){c.concentration=pr.concentration;if(conc)conc.value=pr.concentration;}
+                    // Özel isim input'u göster/gizle
+                    const customInput = document.getElementById('cn_'+c.id);
+                    if (customInput) customInput.style.display = c.name === 'Ozel / Diger' ? 'block' : 'none';
+                }
                 calcOne(c);
             });
+            if (name) name.addEventListener('input', () => { 
+                c.customName = name.value; 
+                if (c.name === 'Ozel / Diger') {
+                    c.shortName = name.value.substring(0, 10) || 'Özel';
+                }
+            });
             if (conc) conc.addEventListener('input', () => { c.concentration=parseFloat(conc.value)||0; calcOne(c); });
-            if (dose) dose.addEventListener('input', () => { c.weeklyDose=parseFloat(dose.value)||0;    calcOne(c); });
+            if (dose) dose.addEventListener('input', () => { 
+                c.weeklyDose=parseFloat(dose.value)||0; 
+                // Varsayılan dozu tüm haftalara uygula
+                if (c.weeklyDoses) {
+                    const totalWeeks = parseInt(document.getElementById('planWeeks')?.value) || editDraft?.totalWeeks || 13;
+                    for (let w = 1; w <= totalWeeks; w++) {
+                        if (c.weeklyDoses[w] === undefined) {
+                            c.weeklyDoses[w] = c.weeklyDose;
+                        }
+                    }
+                }
+                calcOne(c); 
+            });
+            // Haftalık doz input'larını bağla
+            document.querySelectorAll('.week-dose-input[data-compound="'+c.id+'"]').forEach(input => {
+                input.addEventListener('input', () => {
+                    const week = parseInt(input.dataset.week);
+                    const val = parseFloat(input.value) || 0;
+                    if (!c.weeklyDoses) c.weeklyDoses = {};
+                    c.weeklyDoses[week] = val;
+                    calcOne(c);
+                });
+            });
             calcOne(c);
         });
     }
@@ -415,22 +451,41 @@ function buildCompoundRow(c) {
             <input type="checkbox" onchange="toggleCompoundDay('${c.id}',${i},this.checked)"${sel ? ' checked' : ''}>${d}
         </label>`;
     }).join('');
+
+    // Haftalara göre doz ayarlama tablosu
+    const totalWeeks = parseInt(document.getElementById('planWeeks')?.value) || editDraft?.totalWeeks || 13;
+    const weeklyDoses = c.weeklyDoses || {};
+    let doseTableHtml = '<div style="margin-top:12px;padding:10px;background:var(--bg-tertiary);border-radius:var(--radius-sm)">';
+    doseTableHtml += '<div style="font-size:0.78rem;font-weight:700;color:var(--text-secondary);margin-bottom:8px">📊 Haftalara Göre Doz Ayarlama (mg)</div>';
+    doseTableHtml += '<div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(80px,1fr));gap:6px">';
+    for (let w = 1; w <= totalWeeks; w++) {
+        const val = weeklyDoses[w] !== undefined ? weeklyDoses[w] : (c.weeklyDose || 0);
+        doseTableHtml += `<div style="text-align:center">
+            <div style="font-size:0.7rem;color:var(--text-muted);margin-bottom:2px">H${w}</div>
+            <input type="number" class="form-control week-dose-input" data-compound="${c.id}" data-week="${w}" 
+                   value="${val}" min="0" max="5000" style="font-size:0.75rem;padding:4px 6px;text-align:center">
+        </div>`;
+    }
+    doseTableHtml += '</div></div>';
+
     return `<div class="compound-row">
         <div class="compound-fields">
             <div class="form-group" style="flex:2;min-width:200px">
                 <label class="form-label">Bilesik</label>
                 <select id="cs_${c.id}" class="form-control">${opts}</select>
+                <input type="text" id="cn_${c.id}" class="form-control" value="${escHtml(c.customName || '')}" 
+                       placeholder="Özel ilaç adı girin..." style="margin-top:6px;font-size:0.8rem;display:${c.name === 'Ozel / Diger' ? 'block' : 'none'}">
             </div>
             <div class="form-group" style="min-width:130px">
                 <label class="form-label">Konsantrasyon (mg/mL)</label>
                 <input type="number" id="cc_${c.id}" class="form-control" value="${c.concentration}" min="1" max="1000">
             </div>
             <div class="form-group" style="min-width:140px">
-                <label class="form-label">Haftalik Doz (mg)</label>
+                <label class="form-label">Varsayılan Haftalık Doz (mg)</label>
                 <input type="number" id="cd_${c.id}" class="form-control" value="${c.weeklyDose}" min="1" max="5000">
             </div>
             <div class="form-group" style="min-width:110px">
-                <label class="form-label">Enj. Basina</label>
+                <label class="form-label">Enj. Başına</label>
                 <div class="calc-result" id="cm_${c.id}">—</div>
             </div>
             <div style="display:flex;align-items:flex-end;padding-bottom:16px">
@@ -438,9 +493,10 @@ function buildCompoundRow(c) {
             </div>
         </div>
         <div style="margin-top:10px">
-            <label class="form-label">Enjeksiyon Gunleri</label>
+            <label class="form-label">Enjeksiyon Günleri</label>
             <div class="day-checkboxes compound-day-checkboxes">${dayChecks}</div>
         </div>
+        ${doseTableHtml}
     </div>`;
 }
 
@@ -448,7 +504,19 @@ function calcOne(c) {
     // Tum planin ortak enjeksiyon gun sayisina bol (union)
     const unionDays = getPlanInjectionDayUnion(editDraft);
     const inj = unionDays.length || 1;
-    c.mlPerInj = c.concentration > 0 ? parseFloat((c.weeklyDose / c.concentration / inj).toFixed(2)) : 0;
+    const weeklyDoses = c.weeklyDoses || {};
+    const totalWeeks = parseInt(document.getElementById('planWeeks')?.value) || editDraft?.totalWeeks || 13;
+    
+    // Ortalama haftalık doz hesapla
+    let totalDose = 0;
+    let count = 0;
+    for (let w = 1; w <= totalWeeks; w++) {
+        totalDose += weeklyDoses[w] !== undefined ? weeklyDoses[w] : (c.weeklyDose || 0);
+        count++;
+    }
+    const avgWeeklyDose = count > 0 ? totalDose / count : c.weeklyDose || 0;
+    
+    c.mlPerInj = c.concentration > 0 ? parseFloat((avgWeeklyDose / c.concentration / inj).toFixed(2)) : 0;
     const el = document.getElementById('cm_'+c.id);
     if (el) el.textContent = c.mlPerInj.toFixed(2) + ' mL';
     updateTotalVol();
@@ -480,8 +548,10 @@ function addCompound() {
         id,
         name: 'Testosteron Enanthate',
         shortName: 'Test E',
+        customName: '',
         concentration: 250,
         weeklyDose: 500,
+        weeklyDoses: {},
         mlPerInj: 0,
         injectionDays: [...(editDraft.injectionDays || [1, 3, 5])],
     });
