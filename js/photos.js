@@ -132,8 +132,9 @@ async function handleFileSelected(e) {
         status.textContent = 'Hata';
         status.className   = 'badge badge-danger';
         showToast('Yükleme hatası: ' + err.message, 'error');
+    } finally {
+        pendingUpload = null;
     }
-    pendingUpload = null;
 }
 
 function compressImage(file, maxDim, quality) {
