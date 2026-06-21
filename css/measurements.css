@@ -1,0 +1,5 @@
+﻿/* Measurements specific */
+.week-nav { display: flex; align-items: center; gap: 12px; margin-bottom: 24px; }
+.week-nav .week-label { font-size: 1.1rem; font-weight: 700; flex: 1; text-align: center; }
+.side-effect-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); gap: 14px; }
+.saved-badge { display: inline-flex; align-items: center; gap: 5px; font-size: 0.78rem; color: var(--success); background: var(--success-light); border-radius: 20px; padding: 3px 10px; }

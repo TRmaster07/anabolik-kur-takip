@@ -1,0 +1,125 @@
+﻿<!DOCTYPE html>
+<html lang="tr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Dashboard — Kür Takip</title>
+    <link rel="stylesheet" href="css/style.css">
+    <link rel="stylesheet" href="css/dashboard.css">
+</head>
+<body>
+<button class="hamburger" id="hamburger">☰</button>
+<div class="sidebar-overlay" id="sidebarOverlay"></div>
+<div class="app-layout">
+    <aside class="sidebar" id="sidebar"></aside>
+    <main class="main-content">
+        <div class="page-header">
+            <h1>Dashboard</h1>
+            <p>Kür ilerleme özeti ve son ölçümler</p>
+        </div>
+
+        <!-- Current Phase Card -->
+        <div class="card" style="margin-bottom:20px;border-left:4px solid var(--accent)">
+            <div class="card-header" style="margin-bottom:8px">
+                <span class="card-title">📍 Mevcut Dönem</span>
+                <a href="plan.html" class="btn btn-secondary btn-sm" style="font-size:0.78rem">Planı Düzenle</a>
+            </div>
+            <div id="currentPhaseCard" style="color:var(--text-muted);font-size:0.875rem">Yükleniyor...</div>
+        </div>
+
+        <!-- Top stats -->
+        <div class="grid-4" style="margin-bottom:20px">
+            <div class="stat-card">
+                <div class="stat-label">Kür Başlangıcı</div>
+                <div class="stat-value" style="font-size:1.15rem" id="kurStartDate">—</div>
+                <div class="stat-icon">📅</div>
+            </div>
+            <div class="stat-card info">
+                <div class="stat-label">Geçen Gün</div>
+                <div class="stat-value" id="daysPassed">—</div>
+                <div class="stat-icon">⏳</div>
+            </div>
+            <div class="stat-card warning">
+                <div class="stat-label">Mevcut Hafta</div>
+                <div class="stat-value" id="currentWeek">—</div>
+                <div class="stat-unit" id="totalWeeksUnit"></div>
+                <div class="stat-icon">📆</div>
+            </div>
+            <div class="stat-card success">
+                <div class="stat-label">Enjeksiyon Tamamlanma</div>
+                <div class="stat-value" id="injPct">—</div>
+                <div class="progress" style="margin-top:8px">
+                    <div class="progress-bar success" id="injProgressBar" style="width:0%"></div>
+                </div>
+                <div class="stat-icon">💉</div>
+            </div>
+        </div>
+
+        <!-- Last measurements -->
+        <div class="grid-3" style="margin-bottom:20px">
+            <div class="card">
+                <div class="card-header"><span class="card-title">⚖️ Son Kilo</span></div>
+                <div style="font-size:2.2rem;font-weight:700" id="lastWeight">—</div>
+                <div style="color:var(--text-secondary);font-size:0.85rem">kg</div>
+                <div style="margin-top:8px;font-size:0.8rem;color:var(--text-muted)" id="lastWeightWeek"></div>
+            </div>
+            <div class="card">
+                <div class="card-header"><span class="card-title">🩺 Son Tansiyon</span></div>
+                <div style="font-size:1.7rem;font-weight:700" id="lastBP">—</div>
+                <div style="color:var(--text-secondary);font-size:0.85rem">mmHg</div>
+                <div style="margin-top:8px;font-size:0.8rem;color:var(--text-muted)" id="lastBPWeek"></div>
+            </div>
+            <div class="card">
+                <div class="card-header"><span class="card-title">💓 Son Nabız</span></div>
+                <div style="font-size:2.2rem;font-weight:700" id="lastPulse">—</div>
+                <div style="color:var(--text-secondary);font-size:0.85rem">bpm</div>
+                <div style="margin-top:8px;font-size:0.8rem;color:var(--text-muted)" id="lastPulseWeek"></div>
+            </div>
+        </div>
+
+        <!-- Labs & Photos -->
+        <div class="grid-2" style="margin-bottom:20px">
+            <div class="card">
+                <div class="card-header"><span class="card-title">🩸 Kan Tahlilleri</span><a href="labs.html" class="btn btn-secondary btn-sm">Git →</a></div>
+                <div style="margin-bottom:10px">
+                    <div class="stat-label">Son Tahlil Tarihi</div>
+                    <div style="font-weight:600" id="lastLabDate">—</div>
+                </div>
+                <div>
+                    <div class="stat-label">Sonraki Periyot</div>
+                    <div style="color:var(--accent-text);font-weight:600" id="nextLabPeriod">—</div>
+                </div>
+            </div>
+            <div class="card">
+                <div class="card-header"><span class="card-title">📷 Fotoğraf Takibi</span><a href="photos.html" class="btn btn-secondary btn-sm">Git →</a></div>
+                <div>
+                    <div class="stat-label">Son Fotoğraf</div>
+                    <div style="font-weight:600" id="lastPhotoInfo">—</div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Weekly progress grid -->
+        <div class="card">
+            <div class="card-header">
+                <span class="card-title">📋 Haftalık Enjeksiyon İlerlemesi</span>
+                <a href="injections.html" class="btn btn-secondary btn-sm">Takvimi Gör →</a>
+            </div>
+            <div id="weeklyProgressGrid"><div class="loading"><div class="spinner"></div> Yükleniyor...</div></div>
+        </div>
+    </main>
+</div>
+<div id="toast-container"></div>
+
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-auth-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-storage-compat.js"></script>
+<script src="js/firebase-config.js"></script>
+<script src="js/toast.js"></script>
+<script src="js/utils.js"></script>
+<script src="js/nav.js"></script>
+<script src="js/auth.js"></script>
+<script src="js/dashboard.js"></script>
+</body>
+</html>

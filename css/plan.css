@@ -1,0 +1,32 @@
+﻿/* Plan page */
+.day-cb-label {
+    display: inline-flex; align-items: center; justify-content: center;
+    width: 44px; height: 44px; border-radius: 50%;
+    border: 2px solid var(--border); cursor: pointer; font-weight: 700;
+    font-size: 0.78rem; transition: all 0.2s; user-select: none;
+    color: var(--text-muted);
+}
+.day-cb-label input { display: none; }
+.day-cb-label.selected { border-color: var(--accent); background: var(--accent-light); color: var(--accent-text); }
+.day-cb-label:hover:not(.selected) { border-color: var(--accent); color: var(--text-primary); }
+.day-checkboxes { display: flex; gap: 8px; flex-wrap: wrap; margin-top: 4px; }
+.day-cb-label.day-cb-sm { width: 36px; height: 36px; font-size: 0.68rem; }
+.compound-day-checkboxes { margin-top: 4px; }
+
+.compound-row { margin-bottom: 12px; background: var(--bg-tertiary); border: 1px solid var(--border); border-radius: var(--radius-sm); padding: 14px; }
+.compound-fields { display: flex; gap: 12px; flex-wrap: wrap; align-items: flex-start; }
+.calc-result { background: var(--bg-secondary); border: 1px solid var(--border); border-radius: var(--radius-sm); padding: 9px 12px; font-size: 0.875rem; font-weight: 700; color: var(--accent-text); min-height: 38px; display: flex; align-items: center; }
+
+.phase-row { margin-bottom: 10px; background: var(--bg-tertiary); border: 1px solid var(--border); border-left: 4px solid var(--accent); border-radius: var(--radius-sm); padding: 14px; display: flex; align-items: flex-start; gap: 12px; }
+.phase-type-dot { width: 12px; height: 12px; border-radius: 50%; flex-shrink: 0; margin-top: 14px; }
+.phase-fields { display: flex; gap: 12px; flex-wrap: wrap; flex: 1; align-items: flex-start; }
+
+.schedule-preview { background: var(--bg-tertiary); border-radius: var(--radius-sm); padding: 10px 16px; font-size: 0.85rem; color: var(--accent-text); font-weight: 600; margin-top: 10px; }
+
+.total-vol-display { font-size: 1.1rem; font-weight: 700; color: var(--success); padding: 10px 0 4px; }
+
+.phase-badge { display: inline-flex; align-items: center; gap: 6px; padding: 5px 14px; border-radius: 20px; font-size: 0.82rem; font-weight: 700; }
+
+/* Site rotation hint */
+.site-rotation { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 12px; }
+.site-dot { padding: 4px 10px; border-radius: 20px; font-size: 0.72rem; font-weight: 700; border: 1px solid; }

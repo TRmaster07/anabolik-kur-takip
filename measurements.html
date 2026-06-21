@@ -1,0 +1,118 @@
+﻿<!DOCTYPE html>
+<html lang="tr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Haftalık Ölçümler — Kür Takip</title>
+    <link rel="stylesheet" href="css/style.css">
+    <link rel="stylesheet" href="css/measurements.css">
+</head>
+<body>
+<button class="hamburger" id="hamburger">☰</button>
+<div class="sidebar-overlay" id="sidebarOverlay"></div>
+<div class="app-layout">
+    <aside class="sidebar" id="sidebar"></aside>
+    <main class="main-content">
+        <div class="page-header">
+            <h1>📏 Haftalık Ölçümler</h1>
+            <p>Her hafta için antropometrik, hayati bulgular ve yan etki takibi</p>
+        </div>
+
+        <!-- Week navigation -->
+        <div class="week-nav card" style="display:flex;align-items:center;gap:12px;margin-bottom:20px;padding:14px 20px">
+            <button class="btn btn-secondary btn-sm" id="prevWeek">◀</button>
+            <span class="week-label" id="weekLabel">Hafta 1</span>
+            <button class="btn btn-secondary btn-sm" id="nextWeek">▶</button>
+            <div style="flex:1"></div>
+            <span id="savedIndicator"></span>
+        </div>
+
+        <form id="measForm" novalidate>
+            <!-- Anthropometric + Vitals -->
+            <div class="grid-2" style="margin-bottom:20px">
+                <div class="card">
+                    <div class="section-title">⚖️ Antropometrik</div>
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label class="form-label" for="weight">Kilo (kg)</label>
+                            <input type="number" id="weight" class="form-control" placeholder="80.5" step="0.1" min="40" max="200">
+                        </div>
+                        <div class="form-group">
+                            <label class="form-label" for="waist">Bel Çevresi (cm)</label>
+                            <input type="number" id="waist" class="form-control" placeholder="85" step="0.5" min="50" max="200">
+                        </div>
+                    </div>
+                </div>
+                <div class="card">
+                    <div class="section-title">🩺 Hayati Bulgular</div>
+                    <div class="form-row-3">
+                        <div class="form-group">
+                            <label class="form-label" for="systolic">Sistolik (mmHg)</label>
+                            <input type="number" id="systolic" class="form-control" placeholder="120" min="60" max="220">
+                        </div>
+                        <div class="form-group">
+                            <label class="form-label" for="diastolic">Diyastolik (mmHg)</label>
+                            <input type="number" id="diastolic" class="form-control" placeholder="80" min="40" max="140">
+                        </div>
+                        <div class="form-group">
+                            <label class="form-label" for="pulse">Nabız (bpm)</label>
+                            <input type="number" id="pulse" class="form-control" placeholder="65" min="30" max="220">
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Side Effects -->
+            <div class="card" style="margin-bottom:20px">
+                <div class="section-title">⚠️ Yan Etki Takibi (0 = Yok, 10 = Çok Şiddetli)</div>
+                <div class="side-effect-grid" id="sideEffectGrid">
+                    <!-- Rendered by JS -->
+                </div>
+            </div>
+
+            <!-- Notes -->
+            <div class="card" style="margin-bottom:20px">
+                <div class="section-title">📝 Ek Notlar</div>
+                <div class="form-row">
+                    <div class="form-group">
+                        <label class="form-label" for="energy">Enerji Seviyesi</label>
+                        <input type="text" id="energy" class="form-control" maxlength="200" placeholder="Gün boyunca enerjik hissettim...">
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label" for="sleep">Uyku Kalitesi</label>
+                        <input type="text" id="sleep" class="form-control" maxlength="200" placeholder="7 saat, kesintisiz...">
+                    </div>
+                </div>
+                <div class="form-row">
+                    <div class="form-group">
+                        <label class="form-label" for="training">Antrenman Performansı</label>
+                        <input type="text" id="training" class="form-control" maxlength="200" placeholder="PR kırdım, pump harika...">
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label" for="genNotes">Genel Notlar</label>
+                        <textarea id="genNotes" class="form-control" maxlength="1000" placeholder="Bu haftaki genel gözlemler..."></textarea>
+                    </div>
+                </div>
+            </div>
+
+            <div style="display:flex;gap:12px">
+                <button type="submit" class="btn btn-primary" id="saveBtn">💾 Kaydet</button>
+                <button type="button" class="btn btn-danger" id="clearBtn">🗑 Bu Haftayı Temizle</button>
+            </div>
+        </form>
+    </main>
+</div>
+<div id="toast-container"></div>
+
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-auth-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-storage-compat.js"></script>
+<script src="js/firebase-config.js"></script>
+<script src="js/toast.js"></script>
+<script src="js/utils.js"></script>
+<script src="js/nav.js"></script>
+<script src="js/auth.js"></script>
+<script src="js/measurements.js"></script>
+</body>
+</html>

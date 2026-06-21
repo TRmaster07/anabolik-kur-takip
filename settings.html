@@ -1,0 +1,99 @@
+﻿<!DOCTYPE html>
+<html lang="tr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Ayarlar — Kür Takip</title>
+    <link rel="stylesheet" href="css/style.css">
+    <link rel="stylesheet" href="css/settings.css">
+</head>
+<body>
+<button class="hamburger" id="hamburger">☰</button>
+<div class="sidebar-overlay" id="sidebarOverlay"></div>
+<div class="app-layout">
+    <aside class="sidebar" id="sidebar"></aside>
+    <main class="main-content">
+        <div class="page-header">
+            <h1>⚙️ Ayarlar ve Veri Yönetimi</h1>
+            <p>Veri dışa/içe aktarma, yedekleme ve kür bilgileri</p>
+        </div>
+
+        <!-- Kür Bilgileri -->
+        <div class="card settings-section">
+            <div class="section-title">💉 Kür Bilgileri</div>
+            <div id="kurInfoContainer">
+                <div class="loading"><div class="spinner"></div> Yükleniyor...</div>
+            </div>
+        </div>
+
+        <!-- Data Export -->
+        <div class="card settings-section">
+            <div class="section-title">📤 Veri Dışa Aktarma</div>
+            <div class="setting-item">
+                <div class="setting-item-info">
+                    <h4>JSON Yedek</h4>
+                    <p>Tüm verileri JSON formatında indir (enjeksiyonlar, ölçümler, tahliller)</p>
+                </div>
+                <button class="btn btn-primary" id="exportJSON">📥 JSON İndir</button>
+            </div>
+            <div class="setting-item">
+                <div class="setting-item-info">
+                    <h4>Ölçümler CSV</h4>
+                    <p>Haftalık ölçüm verilerini CSV olarak indir</p>
+                </div>
+                <button class="btn btn-secondary" id="exportMeasCSV">📄 CSV İndir</button>
+            </div>
+        </div>
+
+        <!-- Data Import -->
+        <div class="card settings-section">
+            <div class="section-title">📥 Veri İçe Aktarma</div>
+            <div class="setting-item">
+                <div class="setting-item-info">
+                    <h4>JSON İçe Aktar</h4>
+                    <p>Daha önce dışa aktarılan JSON dosyasını içe aktar (mevcut veriler korunur)</p>
+                </div>
+                <div style="display:flex;gap:8px;align-items:center">
+                    <input type="file" id="importFile" accept=".json" style="display:none">
+                    <button class="btn btn-secondary" id="importJSON">📂 Dosya Seç</button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Danger Zone -->
+        <div class="card settings-section">
+            <div class="section-title" style="color:var(--danger)">⚠️ Tehlikeli Bölge</div>
+            <div class="setting-item">
+                <div class="setting-item-info">
+                    <h4>Tüm Verileri Sil</h4>
+                    <p>Tüm enjeksiyon, ölçüm, tahlil verilerini kalıcı olarak siler</p>
+                </div>
+                <button class="btn btn-danger" id="deleteAll">🗑 Tüm Verileri Sil</button>
+            </div>
+        </div>
+
+        <!-- App Info -->
+        <div class="card">
+            <div class="section-title">ℹ️ Uygulama Hakkında</div>
+            <div style="font-size:0.875rem;color:var(--text-secondary);line-height:1.8">
+                <p>Anabolik Kür Takip Sistemi v1.0</p>
+                <p>Firebase Firestore + Firebase Storage + Firebase Auth</p>
+                <p>Maksimum 2 kullanıcı — Ortak veri erişimi</p>
+            </div>
+        </div>
+    </main>
+</div>
+<div id="toast-container"></div>
+
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-auth-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-storage-compat.js"></script>
+<script src="js/firebase-config.js"></script>
+<script src="js/toast.js"></script>
+<script src="js/utils.js"></script>
+<script src="js/nav.js"></script>
+<script src="js/auth.js"></script>
+<script src="js/settings.js"></script>
+</body>
+</html>

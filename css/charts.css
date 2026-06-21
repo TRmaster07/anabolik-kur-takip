@@ -1,0 +1,5 @@
+﻿/* Charts specific */
+.chart-container { position: relative; height: 280px; width: 100%; }
+.chart-container.tall { height: 360px; }
+.chart-card { margin-bottom: 20px; }
+.chart-empty { display: flex; align-items: center; justify-content: center; height: 200px; color: var(--text-muted); font-size: 0.875rem; flex-direction: column; gap: 8px; }

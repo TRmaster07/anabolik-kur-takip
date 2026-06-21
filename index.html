@@ -1,0 +1,88 @@
+﻿<!DOCTYPE html>
+<html lang="tr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Giriş — Anabolik Kür Takip</title>
+    <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+<div class="login-page">
+    <div class="login-card">
+        <div class="login-logo">
+            <span class="logo-icon">💉</span>
+            <h1>Kür Takip</h1>
+            <p class="logo-subtitle">13 Haftalık Anabolik Program</p>
+            <div class="logo-badge">⚡ Performans · Güvenlik · Takip</div>
+        </div>
+        <div id="demoHint" style="background:rgba(124,58,237,0.15);border:1px solid rgba(124,58,237,0.4);border-radius:8px;padding:10px 14px;margin-bottom:16px;font-size:0.82rem;color:#a78bfa;display:none">
+            <strong>Demo Mod aktif.</strong> Kullanıcı: <code>admin</code> &nbsp; Şifre: <code>123</code>
+        </div>
+        <div class="login-error" id="loginError"></div>
+        <form id="loginForm" novalidate>
+            <div class="form-group">
+                <label class="form-label" for="email">E-posta Adresi</label>
+                <input type="email" id="email" class="form-control" placeholder="ornek@email.com" required autocomplete="email">
+            </div>
+            <div class="form-group">
+                <label class="form-label" for="password">Şifre</label>
+                <input type="password" id="password" class="form-control" placeholder="••••••••" required autocomplete="current-password">
+            </div>
+            <div class="form-group" style="margin-top:20px">
+                <button type="submit" class="btn btn-primary" id="loginBtn" style="width:100%;justify-content:center;padding:13px;font-size:1rem">
+                    Giriş Yap
+                </button>
+            </div>
+        </form>
+        <p class="login-footer-text">Sadece yetkili kullanıcılar giriş yapabilir</p>
+    </div>
+</div>
+<div id="toast-container"></div>
+
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-auth-compat.js"></script>
+<script src="js/firebase-config.js"></script>
+<script src="js/toast.js"></script>
+<script>
+// Show demo hint if no real Firebase config
+if (typeof DEMO_MODE !== 'undefined' && DEMO_MODE) {
+    document.getElementById('demoHint').style.display = 'block';
+}
+
+// If already logged in, redirect immediately
+if (typeof DEMO_MODE !== 'undefined' && DEMO_MODE) {
+    if (sessionStorage.getItem('demoUser')) window.location.href = 'dashboard.html';
+} else {
+    auth.onAuthStateChanged(user => { if (user) window.location.href = 'dashboard.html'; });
+}
+
+document.getElementById('loginForm').addEventListener('submit', async e => {
+    e.preventDefault();
+    const email    = document.getElementById('email').value.trim();
+    const password = document.getElementById('password').value;
+    const btn      = document.getElementById('loginBtn');
+    const errEl    = document.getElementById('loginError');
+
+    if (!email || !password) { errEl.textContent = 'Lütfen tüm alanları doldurun.'; errEl.classList.add('show'); return; }
+
+    btn.disabled = true; btn.textContent = 'Giriş yapılıyor...'; errEl.classList.remove('show');
+    try {
+        await auth.signInWithEmailAndPassword(email, password);
+        window.location.href = 'dashboard.html';
+    } catch (err) {
+        const msgs = {
+            'auth/user-not-found':      'E-posta veya şifre hatalı.',
+            'auth/wrong-password':      'E-posta veya şifre hatalı.',
+            'auth/invalid-credential':  'E-posta veya şifre hatalı.',
+            'auth/invalid-email':       'Geçersiz e-posta adresi.',
+            'auth/too-many-requests':   'Çok fazla deneme. Lütfen bekleyin.',
+            'auth/network-request-failed': 'Ağ hatası. İnternet bağlantınızı kontrol edin.'
+        };
+        errEl.textContent = msgs[err.code] || 'Giriş yapılamadı. Lütfen tekrar deneyin.';
+        errEl.classList.add('show');
+        btn.disabled = false; btn.textContent = 'Giriş Yap';
+    }
+});
+</script>
+</body>
+</html>

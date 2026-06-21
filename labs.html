@@ -1,0 +1,46 @@
+﻿<!DOCTYPE html>
+<html lang="tr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Kan Tahlilleri — Kür Takip</title>
+    <link rel="stylesheet" href="css/style.css">
+    <link rel="stylesheet" href="css/labs.css">
+</head>
+<body>
+<button class="hamburger" id="hamburger">☰</button>
+<div class="sidebar-overlay" id="sidebarOverlay"></div>
+<div class="app-layout">
+    <aside class="sidebar" id="sidebar"></aside>
+    <main class="main-content">
+        <div class="page-header">
+            <h1>🩸 Kan Tahlilleri</h1>
+            <p>4 periyot için kan tahlili sonuçları</p>
+        </div>
+
+        <div class="tabs period-tabs" id="periodTabs">
+            <button class="tab-btn period-tab-btn active" data-period="1">Periyot 1 — Kür Öncesi</button>
+            <button class="tab-btn period-tab-btn" data-period="2">Periyot 2 — Kür Ortası I</button>
+            <button class="tab-btn period-tab-btn" data-period="3">Periyot 3 — Kür Ortası II</button>
+            <button class="tab-btn period-tab-btn" data-period="4">Periyot 4 — Kür Sonu</button>
+        </div>
+
+        <div id="labContent">
+            <div class="loading"><div class="spinner"></div> Yükleniyor...</div>
+        </div>
+    </main>
+</div>
+<div id="toast-container"></div>
+
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-auth-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-storage-compat.js"></script>
+<script src="js/firebase-config.js"></script>
+<script src="js/toast.js"></script>
+<script src="js/utils.js"></script>
+<script src="js/nav.js"></script>
+<script src="js/auth.js"></script>
+<script src="js/labs.js"></script>
+</body>
+</html>

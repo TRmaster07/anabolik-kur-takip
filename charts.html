@@ -1,0 +1,76 @@
+﻿<!DOCTYPE html>
+<html lang="tr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Grafikler — Kür Takip</title>
+    <link rel="stylesheet" href="css/style.css">
+    <link rel="stylesheet" href="css/charts.css">
+</head>
+<body>
+<button class="hamburger" id="hamburger">☰</button>
+<div class="sidebar-overlay" id="sidebarOverlay"></div>
+<div class="app-layout">
+    <aside class="sidebar" id="sidebar"></aside>
+    <main class="main-content">
+        <div class="page-header">
+            <h1>📈 Grafikler ve Analizler</h1>
+            <p>Haftalık ölçüm verilerinin görsel analizi</p>
+        </div>
+
+        <div id="noDataMsg" style="display:none">
+            <div class="card">
+                <div class="empty-state">
+                    <div class="empty-icon">📊</div>
+                    <p>Grafik oluşturmak için önce Haftalık Ölçümler sayfasına veri girin.</p>
+                    <a href="measurements.html" class="btn btn-primary" style="margin-top:12px">Ölçüm Ekle</a>
+                </div>
+            </div>
+        </div>
+
+        <div class="grid-2" id="chartsGrid">
+            <!-- Weight -->
+            <div class="card chart-card">
+                <div class="card-header"><span class="card-title">⚖️ Kilo Değişimi (kg)</span></div>
+                <div class="chart-container"><canvas id="chartWeight"></canvas></div>
+            </div>
+            <!-- Waist -->
+            <div class="card chart-card">
+                <div class="card-header"><span class="card-title">📐 Bel Çevresi (cm)</span></div>
+                <div class="chart-container"><canvas id="chartWaist"></canvas></div>
+            </div>
+            <!-- Blood Pressure -->
+            <div class="card chart-card">
+                <div class="card-header"><span class="card-title">🩺 Tansiyon (mmHg)</span></div>
+                <div class="chart-container"><canvas id="chartBP"></canvas></div>
+            </div>
+            <!-- Pulse -->
+            <div class="card chart-card">
+                <div class="card-header"><span class="card-title">💓 Nabız (bpm)</span></div>
+                <div class="chart-container"><canvas id="chartPulse"></canvas></div>
+            </div>
+            <!-- Side Effects -->
+            <div class="card chart-card" style="grid-column:span 2">
+                <div class="card-header"><span class="card-title">⚠️ Yan Etki Trendleri (0-10)</span></div>
+                <div class="chart-container tall"><canvas id="chartSideEffects"></canvas></div>
+            </div>
+        </div>
+
+        <div id="chartsLoading" class="loading"><div class="spinner"></div> Veriler yükleniyor...</div>
+    </main>
+</div>
+<div id="toast-container"></div>
+
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-auth-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-storage-compat.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.2/dist/chart.umd.min.js"></script>
+<script src="js/firebase-config.js"></script>
+<script src="js/toast.js"></script>
+<script src="js/utils.js"></script>
+<script src="js/nav.js"></script>
+<script src="js/auth.js"></script>
+<script src="js/charts.js"></script>
+</body>
+</html>

@@ -1,0 +1,6 @@
+﻿/* Injections specific */
+.inj-toolbar { display: flex; flex-wrap: wrap; gap: 10px; align-items: center; margin-bottom: 20px; }
+.inj-stats { font-size: 0.875rem; color: var(--text-secondary); background: var(--bg-card); border: 1px solid var(--border); border-radius: var(--radius-sm); padding: 8px 14px; }
+.inj-today td { background: rgba(124,58,237,0.06) !important; }
+td .note-input { background: var(--bg-tertiary); border: 1px solid var(--border); border-radius: 6px; color: var(--text-primary); font-size: 0.8rem; padding: 5px 9px; width: 100%; min-width: 130px; font-family: inherit; transition: border-color 0.2s; }
+td .note-input:focus { outline: none; border-color: var(--accent); }

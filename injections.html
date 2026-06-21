@@ -1,0 +1,57 @@
+﻿<!DOCTYPE html>
+<html lang="tr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Enjeksiyon Takvimi — Kür Takip</title>
+    <link rel="stylesheet" href="css/style.css">
+    <link rel="stylesheet" href="css/injections.css">
+    <link rel="stylesheet" href="css/plan.css">
+</head>
+<body>
+<button class="hamburger" id="hamburger">☰</button>
+<div class="sidebar-overlay" id="sidebarOverlay"></div>
+<div class="app-layout">
+    <aside class="sidebar" id="sidebar"></aside>
+    <main class="main-content">
+        <div class="page-header">
+            <h1>💉 Enjeksiyon Takvimi</h1>
+            <p id="injSubtitle">Kür takvimi — enjeksiyon bölgesi ve reaksiyon takibi</p>
+        </div>
+
+        <div class="inj-toolbar">
+            <div class="inj-stats" id="injStats">Yükleniyor...</div>
+            <span id="planBadge" style="font-size:0.82rem;color:var(--accent-text);font-weight:600"></span>
+            <div style="flex:1"></div>
+            <button class="btn btn-danger" id="resetAll">🗑 Tümünü Sıfırla</button>
+            <button class="btn btn-secondary" id="exportCSV">📄 CSV İndir</button>
+            <button class="btn btn-secondary" id="exportPDF">📑 PDF Rapor</button>
+        </div>
+
+        <!-- Site rotation summary -->
+        <div class="card" style="margin-bottom:16px;padding:14px 18px">
+            <div style="font-size:0.8rem;font-weight:700;color:var(--text-secondary);margin-bottom:8px">📍 Enjeksiyon Bölge Dağılımı</div>
+            <div class="site-rotation" id="siteRotation">Yükleniyor...</div>
+        </div>
+
+        <div id="injectionsContainer">
+            <div class="loading"><div class="spinner"></div> Veriler yükleniyor...</div>
+        </div>
+    </main>
+</div>
+<div id="toast-container"></div>
+
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-auth-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-storage-compat.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.8.2/jspdf.plugin.autotable.min.js"></script>
+<script src="js/firebase-config.js"></script>
+<script src="js/toast.js"></script>
+<script src="js/utils.js"></script>
+<script src="js/nav.js"></script>
+<script src="js/auth.js"></script>
+<script src="js/injections.js"></script>
+</body>
+</html>

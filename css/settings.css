@@ -1,0 +1,9 @@
+﻿/* Settings specific */
+.settings-section { margin-bottom: 28px; }
+.setting-item { display: flex; align-items: center; justify-content: space-between; padding: 14px 18px; background: var(--bg-tertiary); border: 1px solid var(--border); border-radius: var(--radius-sm); margin-bottom: 8px; gap: 12px; }
+.setting-item-info h4 { font-size: 0.9rem; font-weight: 600; margin-bottom: 2px; }
+.setting-item-info p { font-size: 0.8rem; color: var(--text-secondary); }
+.kur-info-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: 12px; }
+.kur-info-item { background: var(--bg-tertiary); border: 1px solid var(--border); border-radius: var(--radius-sm); padding: 14px; }
+.kur-info-item .ki-label { font-size: 0.75rem; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.05em; margin-bottom: 5px; }
+.kur-info-item .ki-value { font-size: 1.05rem; font-weight: 700; }
