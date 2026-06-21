@@ -18,7 +18,7 @@ const DEMO_MODE = false;
 firebase.initializeApp(firebaseConfig);
 const auth    = firebase.auth();
 const db      = firebase.firestore();
-const storage = firebase.storage();
+const storage = firebase.storage ? firebase.storage() : null; // Storage opsiyonel
 window.auth = auth; window.db = db; window.storage = storage;
 
 // offline destegi
