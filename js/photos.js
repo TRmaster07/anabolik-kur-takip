@@ -27,8 +27,26 @@ async function loadAllPhotoMeta() {
     } catch(e) { console.error(e); }
 }
 
-function renderWeekThumbs() {
+async function checkActivePlan() {
+    try {
+        const doc = await db.collection('plan').doc('main').get();
+        return doc.exists;
+    } catch(e) { return false; }
+}
+
+async function renderWeekThumbs() {
     const grid = document.getElementById('weekThumbGrid');
+    const hasActivePlan = await checkActivePlan();
+    
+    if (!hasActivePlan) {
+        grid.innerHTML = '<div class="empty-state" style="padding:40px 20px;grid-column:1/-1">' +
+            '<div class="empty-icon">📋</div>' +
+            '<p>Henüz aktif kür planı yok.<br>Fotoğraflar aktif kür olduğunda görünecektir.</p>' +
+            '<a href="plan.html" class="btn btn-primary" style="margin-top:16px;display:inline-flex">+ Kür Planı Oluştur</a>' +
+            '</div>';
+        return;
+    }
+    
     let html = '';
     for (let w = 1; w <= TOTAL_WEEKS; w++) {
         const key     = 'week_' + w;
@@ -54,10 +72,18 @@ function selectWeek(w) {
     renderPhotoCard(w);
 }
 
-function renderPhotoCard(w) {
+async function renderPhotoCard(w) {
     const card  = document.getElementById('photoCard');
     const title = document.getElementById('photoCardTitle');
     const grid  = document.getElementById('photoGrid');
+    
+    const hasActivePlan = await checkActivePlan();
+    
+    if (!hasActivePlan) {
+        card.style.display = 'none';
+        return;
+    }
+    
     card.style.display = 'block';
     title.textContent  = 'Hafta ' + w + ' Fotoğrafları';
 
@@ -202,6 +228,26 @@ function populateCompareSelects() {
     document.getElementById('compareLeft').innerHTML  = opts;
     document.getElementById('compareRight').innerHTML = opts;
     if (TOTAL_WEEKS > 1) document.getElementById('compareRight').value = Math.min(2, TOTAL_WEEKS);
+}
+
+async function archivePhotos(archivedPlanId) {
+    try {
+        const snap = await db.collection('photos').get();
+        const batch = db.batch();
+        
+        snap.forEach(doc => {
+            const data = doc.data();
+            batch.update(doc.ref, {
+                archivedPlanId: archivedPlanId,
+                archivedAt: firebase.firestore.FieldValue.serverTimestamp()
+            });
+        });
+        
+        await batch.commit();
+        console.log('Fotoğraflar arşivlendi');
+    } catch(e) {
+        console.error('Fotoğraf arşivleme hatası:', e);
+    }
 }
 
 function runCompare() {

@@ -320,13 +320,16 @@ async function archivePlan() {
         const endDate = plan.endDate || formatDateISO(new Date());
         
         // Arşivle
-        await db.collection('archivedPlans').add({
+        const archivedRef = await db.collection('archivedPlans').add({
             planData: JSON.parse(JSON.stringify(plan)),
             archivedAt: archivedAt,
             endDate: endDate,
             totalWeeks: plan.totalWeeks || 13,
             totalInjections: generateScheduleFromPlan(plan).length
         });
+        
+        // Fotoğrafları da arşivle
+        await archivePhotos(archivedRef.id);
         
         // Aktif planı sil
         await db.collection('plan').doc('main').delete();
@@ -335,6 +338,26 @@ async function archivePlan() {
         showToast('Kur sonlandırıldı ve arşivlendi ✓', 'success');
         renderPage();
     } catch(e) { showToast('Arşivleme hatası: '+e.message, 'error'); }
+}
+
+async function archivePhotos(archivedPlanId) {
+    try {
+        const snap = await db.collection('photos').get();
+        const batch = db.batch();
+        
+        snap.forEach(doc => {
+            const data = doc.data();
+            batch.update(doc.ref, {
+                archivedPlanId: archivedPlanId,
+                archivedAt: firebase.firestore.FieldValue.serverTimestamp()
+            });
+        });
+        
+        await batch.commit();
+        console.log('Fotoğraflar arşivlendi');
+    } catch(e) {
+        console.error('Fotoğraf arşivleme hatası:', e);
+    }
 }
 
 async function loadArchivedPlans() {
